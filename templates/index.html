@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiagramAI — LaTeX Diagram Generator | Powered by IBM Granite</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <!-- CodeMirror for TikZ editor -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css" rel="stylesheet" />
+  <!-- Custom CSS -->
+  <link href="/static/css/main.css" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════ NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-main">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="28" height="28" rx="7" fill="#3b82d4"/>
+        <text x="5" y="21" font-size="16" fill="white" font-family="monospace" font-weight="bold">∂</text>
+      </svg>
+      <span class="fw-bold">Diagram<span class="brand-ai">AI</span></span>
+      <span class="badge badge-ibm ms-1">IBM Granite</span>
+    </a>
+    <div class="d-flex align-items-center gap-3 ms-auto">
+      <!-- Style Profile Selector -->
+      <select id="styleProfile" class="form-select form-select-sm style-select" title="Academic Style Profile">
+        <option value="ieee">IEEE Style</option>
+        <option value="acm">ACM Style</option>
+        <option value="springer">Springer LNCS</option>
+        <option value="custom">Custom</option>
+      </select>
+      <!-- Dark Mode Toggle -->
+      <button id="themeToggle" class="btn btn-sm btn-icon" title="Toggle dark mode">
+        <i class="bi bi-moon-stars-fill"></i>
+      </button>
+      <!-- History Panel Toggle -->
+      <button id="historyToggle" class="btn btn-sm btn-icon" title="Diagram library">
+        <i class="bi bi-clock-history"></i>
+        <span class="badge history-badge" id="historyCount">0</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════ MAIN LAYOUT -->
+<div class="app-container">
+
+  <!-- ─────────────── LEFT PANEL: Chat + Editor ─────────────── -->
+  <div class="panel-left" id="panelLeft">
+
+    <!-- TABS -->
+    <ul class="nav nav-tabs panel-tabs" id="leftTabs" role="tablist">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabChat" type="button"><i class="bi bi-chat-dots me-1"></i>Chat</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabEditor" type="button"><i class="bi bi-code-slash me-1"></i>TikZ Editor</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabSketch" type="button"><i class="bi bi-pen me-1"></i>Sketch</button></li>
+    </ul>
+
+    <div class="tab-content panel-tab-content">
+
+      <!-- ─── TAB: Chat ─── -->
+      <div class="tab-pane fade show active h-100" id="tabChat" role="tabpanel">
+        <div class="chat-container" id="chatContainer">
+          <!-- Welcome message -->
+          <div class="chat-message assistant-message welcome-msg">
+            <div class="msg-avatar"><i class="bi bi-cpu-fill"></i></div>
+            <div class="msg-body">
+              <div class="msg-header">DiagramAI <span class="msg-time">now</span></div>
+              <div class="msg-text">
+                <p>Hello! I'm <strong>DiagramAI</strong>, your AI-powered academic diagram assistant built on <strong>IBM Granite</strong>.</p>
+                <p>Tell me what diagram to create — for example:</p>
+                <ul class="example-prompts">
+                  <li><a class="example-link" href="#" data-prompt="Draw a 3-layer neural network with 4 input nodes, 5 hidden nodes, and 2 output nodes. Label the layers.">Neural network with labeled layers</a></li>
+                  <li><a class="example-link" href="#" data-prompt="Create a flowchart for a binary search algorithm with decision diamonds and process boxes.">Binary search flowchart</a></li>
+                  <li><a class="example-link" href="#" data-prompt="Draw a Venn diagram with 3 overlapping circles labeled Set A, Set B, and Set C showing all intersections.">3-set Venn diagram</a></li>
+                  <li><a class="example-link" href="#" data-prompt="Create a block diagram of a PID controller with summing junction, controller block, plant block, and feedback path.">PID controller block diagram</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="chat-input-area">
+          <div class="input-wrapper">
+            <textarea id="chatInput" class="chat-textarea" placeholder="Describe your diagram or type a refinement command... (Shift+Enter for newline)" rows="3"></textarea>
+            <div class="input-actions">
+              <div class="d-flex align-items-center gap-2">
+                <select id="diagramTypeHint" class="form-select form-select-sm type-select" title="Diagram type hint">
+                  <option value="">Auto-detect type</option>
+                  <option value="neural_network">Neural Network</option>
+                  <option value="flowchart">Flowchart</option>
+                  <option value="block_diagram">Block Diagram</option>
+                  <option value="circuit_diagram">Circuit Diagram</option>
+                  <option value="venn_diagram">Venn Diagram</option>
+                  <option value="state_machine">State Machine</option>
+                  <option value="sequence_diagram">Sequence Diagram</option>
+                  <option value="tree_diagram">Tree Diagram</option>
+                  <option value="bar_chart">Bar Chart</option>
+                  <option value="line_graph">Line Graph</option>
+                  <option value="gantt_chart">Gantt Chart</option>
+                  <option value="architecture_diagram">Architecture</option>
+                  <option value="er_diagram">ER Diagram</option>
+                  <option value="uml_class_diagram">UML Class</option>
+                  <option value="mind_map">Mind Map</option>
+                </select>
+                <div class="form-check form-switch mb-0 d-flex align-items-center gap-1">
+                  <input class="form-check-input" type="checkbox" id="autoCompile" checked />
+                  <label class="form-check-label small" for="autoCompile">Auto-compile</label>
+                </div>
+              </div>
+              <button id="sendBtn" class="btn btn-primary btn-send">
+                <i class="bi bi-send-fill me-1"></i>Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── TAB: TikZ Editor ─── -->
+      <div class="tab-pane fade h-100" id="tabEditor" role="tabpanel">
+        <div class="editor-toolbar">
+          <span class="editor-label"><i class="bi bi-code-slash me-1"></i>TikZ Editor</span>
+          <div class="editor-actions">
+            <button class="btn btn-xs btn-outline-secondary" id="editorValidate" title="Validate syntax"><i class="bi bi-check-circle me-1"></i>Validate</button>
+            <button class="btn btn-xs btn-outline-primary" id="editorCompile" title="Compile and preview"><i class="bi bi-play-fill me-1"></i>Compile</button>
+            <button class="btn btn-xs btn-outline-success" id="editorOptimize" title="AI optimization suggestions"><i class="bi bi-stars me-1"></i>Optimize</button>
+            <button class="btn btn-xs btn-outline-secondary" id="editorCopy" title="Copy code"><i class="bi bi-clipboard me-1"></i>Copy</button>
+          </div>
+        </div>
+        <div id="codeEditor"></div>
+        <div id="validationPanel" class="validation-panel d-none"></div>
+        <div id="optimizationPanel" class="optimization-panel d-none"></div>
+      </div>
+
+      <!-- ─── TAB: Sketch Upload ─── -->
+      <div class="tab-pane fade" id="tabSketch" role="tabpanel">
+        <div class="sketch-panel">
+          <div class="sketch-header">
+            <h6><i class="bi bi-pen me-2"></i>Upload a Hand-Drawn Sketch</h6>
+            <p class="text-muted small">Upload a photo or scan of your hand-drawn diagram. DiagramAI will interpret it and generate TikZ code.</p>
+          </div>
+
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-content">
+              <i class="bi bi-cloud-arrow-up drop-icon"></i>
+              <p>Drag & drop your sketch here</p>
+              <p class="text-muted small">or</p>
+              <label class="btn btn-outline-primary btn-sm">
+                Browse File
+                <input type="file" id="sketchFile" accept="image/*" class="d-none" />
+              </label>
+              <p class="text-muted small mt-2">PNG, JPG, GIF, WebP, SVG — up to 16 MB</p>
+            </div>
+          </div>
+
+          <div id="sketchPreview" class="sketch-preview d-none">
+            <img id="sketchImg" src="" alt="Uploaded sketch" class="img-fluid rounded" />
+            <button class="btn btn-xs btn-outline-danger mt-2" id="clearSketch"><i class="bi bi-trash me-1"></i>Remove</button>
+          </div>
+
+          <div class="mt-3">
+            <label class="form-label small fw-semibold">Additional description (optional)</label>
+            <textarea id="sketchDescription" class="form-control form-control-sm" rows="3"
+              placeholder="Describe the sketch or add context, e.g. 'This is a system architecture with 3 microservices'..."></textarea>
+          </div>
+
+          <button id="interpretSketch" class="btn btn-primary w-100 mt-3" disabled>
+            <i class="bi bi-magic me-2"></i>Interpret & Generate TikZ Code
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /tab-content -->
+  </div><!-- /panel-left -->
+
+  <!-- ─────────────── RESIZER ─────────────── -->
+  <div class="panel-resizer" id="panelResizer" title="Drag to resize"></div>
+
+  <!-- ─────────────── RIGHT PANEL: Preview + Export ─────────────── -->
+  <div class="panel-right" id="panelRight">
+    <div class="preview-toolbar">
+      <span class="preview-label"><i class="bi bi-eye me-1"></i>Live Preview</span>
+      <div class="preview-actions" id="previewActions">
+        <span id="previewStatus" class="status-badge status-idle">
+          <i class="bi bi-circle-fill me-1"></i>Ready
+        </span>
+        <button class="btn btn-xs btn-outline-secondary" id="zoomOut" title="Zoom out"><i class="bi bi-zoom-out"></i></button>
+        <button class="btn btn-xs btn-outline-secondary" id="zoomIn" title="Zoom in"><i class="bi bi-zoom-in"></i></button>
+        <button class="btn btn-xs btn-outline-secondary" id="zoomReset" title="Reset zoom"><i class="bi bi-aspect-ratio"></i></button>
+        <!-- Export Dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-xs btn-outline-primary dropdown-toggle" id="exportBtn" data-bs-toggle="dropdown" disabled>
+            <i class="bi bi-download me-1"></i>Export
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end export-menu">
+            <li><a class="dropdown-item" href="#" id="exportTex"><i class="bi bi-file-code me-2"></i>Download .tex</a></li>
+            <li><a class="dropdown-item" href="#" id="exportPdf"><i class="bi bi-file-pdf me-2"></i>Download .pdf</a></li>
+            <li><a class="dropdown-item" href="#" id="exportPng"><i class="bi bi-file-image me-2"></i>Download .png</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Area -->
+    <div class="preview-area" id="previewArea">
+      <div class="preview-placeholder" id="previewPlaceholder">
+        <div class="placeholder-content">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="placeholder-icon">
+            <rect x="10" y="20" width="60" height="45" rx="4" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="5,3"/>
+            <circle cx="28" cy="38" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="52" cy="38" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <path d="M34 38 H46" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+            <circle cx="28" cy="55" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="52" cy="55" r="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <path d="M34 55 H46" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <p class="text-muted">Your diagram will appear here</p>
+          <p class="text-muted small">Generate a diagram or compile TikZ code to see a preview</p>
+        </div>
+      </div>
+      <div class="preview-image-wrap d-none" id="previewImageWrap">
+        <div class="preview-zoom-container" id="zoomContainer">
+          <img id="previewImage" src="" alt="Compiled diagram" class="preview-img" />
+        </div>
+      </div>
+      <div class="compile-error-panel d-none" id="compileErrorPanel">
+        <div class="error-header"><i class="bi bi-exclamation-triangle-fill me-2"></i>Compilation Error</div>
+        <pre class="error-log" id="errorLog"></pre>
+        <button class="btn btn-sm btn-warning mt-2" id="autoFixBtn">
+          <i class="bi bi-magic me-1"></i>Auto-Fix with AI
+        </button>
+      </div>
+    </div>
+
+    <!-- Explanation Panel -->
+    <div class="explanation-panel" id="explanationPanel">
+      <div class="explanation-header" id="explanationToggle">
+        <span><i class="bi bi-lightbulb me-2"></i>Code Explanation</span>
+        <i class="bi bi-chevron-down exp-chevron"></i>
+      </div>
+      <div class="explanation-body" id="explanationBody">
+        <p class="text-muted small">Explanation of the generated TikZ code will appear here.</p>
+      </div>
+    </div>
+  </div><!-- /panel-right -->
+
+</div><!-- /app-container -->
+
+<!-- ═══════════════════════════════════════════════════════ HISTORY SIDEBAR -->
+<div class="history-sidebar" id="historySidebar">
+  <div class="history-header">
+    <span><i class="bi bi-clock-history me-2"></i>Diagram Library</span>
+    <button class="btn btn-xs btn-icon" id="closeHistory"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="history-search">
+    <input type="search" class="form-control form-control-sm" id="historySearch" placeholder="Search history..." />
+  </div>
+  <div class="history-list" id="historyList">
+    <p class="text-muted text-center small pt-4">No diagrams yet. Generate one to get started!</p>
+  </div>
+  <div class="history-footer">
+    <button class="btn btn-xs btn-outline-danger" id="clearHistoryBtn"><i class="bi bi-trash me-1"></i>Clear All</button>
+  </div>
+</div>
+<div class="history-overlay d-none" id="historyOverlay"></div>
+
+<!-- ═══════════════════════════════════════════════════════ LOADING OVERLAY -->
+<div class="loading-overlay d-none" id="loadingOverlay">
+  <div class="loading-card">
+    <div class="spinner-border text-primary mb-3" role="status"></div>
+    <div class="loading-msg" id="loadingMsg">Generating diagram...</div>
+    <div class="loading-sub text-muted small">IBM Granite is thinking...</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TOAST CONTAINER -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/stex/stex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script src="/static/js/app.js"></script>
+
+</body>
+</html>
